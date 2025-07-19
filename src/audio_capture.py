@@ -24,6 +24,10 @@ class AudioCapture:
         self.audio_queue = queue.Queue()
         self.buffer_size = 10  # 缓冲区大小
         
+    def is_running(self) -> bool:
+        """检查音频捕获是否正在运行"""
+        return self.is_recording
+
     async def start(self):
         """启动音频捕获"""
         try:

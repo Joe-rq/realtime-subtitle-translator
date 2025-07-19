@@ -19,7 +19,6 @@ class SubtitleOverlay:
         self.root = None
         self.label = None
         self.current_text = ""
-        self.text_queue = queue.Queue()
         self.running = False
         self.gui_ready = False
         
@@ -90,30 +89,9 @@ class SubtitleOverlay:
             # 标记GUI就绪
             self.gui_ready = True
             
-            # 启动文本更新检查（在主线程的事件循环中）
-            self._schedule_text_update()
-            
         except Exception as e:
             logger.error(f"创建悬浮窗失败: {e}")
             self.running = False
-    
-    def _schedule_text_update(self):
-        """安排文本更新检查"""
-        if not self.running:
-            return
-            
-        try:
-            # 尝试获取新文本
-            new_text = self.text_queue.get_nowait()
-            if new_text != self.current_text:
-                self.current_text = new_text
-                self._update_text(new_text)
-        except queue.Empty:
-            pass
-        
-        # 安排下次检查
-        if self.root and self.running:
-            self.root.after(50, self._schedule_text_update)
     
     def _start_move(self, event):
         """开始拖动窗口"""
@@ -133,22 +111,20 @@ class SubtitleOverlay:
         y = self.root.winfo_y() + deltay
         self.root.geometry(f"+{x}+{y}")
     
-    def _update_text(self, text):
-        """更新文本内容"""
-        if self.label:
-            self.label.config(text=text)
-    
     def update_subtitle(self, text: str):
-        """更新字幕内容 - 线程安全"""
-        if text and self.running:
-            self.text_queue.put(text)
+        """更新字幕内容 - 在单线程模型下是安全的"""
+        if text and self.running and self.label and text != self.current_text:
+            self.current_text = text
+            self.label.config(text=text)
     
     def hide(self):
         """隐藏字幕悬浮窗"""
+        if not self.running:
+            return
+            
         self.running = False
         
         if self.root:
-            self.root.quit()
             self.root.destroy()
             self.root = None
             
