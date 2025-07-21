@@ -5,11 +5,14 @@
 ## 🚀 功能特性
 
 - **实时语音识别**: 使用Whisper模型进行英文语音识别
-- **智能翻译**: 使用OpenAI GPT进行高质量中文翻译
+- **智能翻译**: 支持OpenAI GPT和Kimi AI高质量中文翻译
+- **多API支持**: 可切换使用OpenAI或Kimi AI翻译服务
 - **悬浮字幕**: 桌面悬浮窗显示翻译结果
 - **低延迟**: 优化处理流程，延迟<500ms
 - **可拖拽**: 字幕窗口支持鼠标拖拽定位
 - **透明度调节**: 支持窗口透明度设置
+- **错误恢复**: 自动重试机制和详细的错误日志
+- **调试工具**: 内置调试脚本便于问题排查
 
 ## 📋 系统要求
 
@@ -64,6 +67,9 @@ python -m src.audio_capture
 
 # 测试翻译功能
 python -m src.translation
+
+# 使用Kimi AI翻译 (推荐)
+# 在.env文件中设置 KIMI_API_KEY 而不是 OPENAI_API_KEY
 ```
 
 ## ⚙️ 配置说明
@@ -71,8 +77,9 @@ python -m src.translation
 编辑 `.env` 文件进行个性化配置：
 
 ```bash
-# OpenAI配置
+# API配置 (二选一)
 OPENAI_API_KEY=your_api_key_here
+KIMI_API_KEY=your_kimi_api_key_here
 
 # Whisper配置
 WHISPER_MODEL=base           # tiny/base/small/medium/large
@@ -93,6 +100,7 @@ SUBTITLE_POSITION=bottom    # top/bottom/center
 TARGET_LANGUAGE=zh-CN
 TRANSLATION_DELAY_MS=500
 MAX_SUBTITLE_LENGTH=50
+TRANSLATION_SERVICE=kimi  # openai 或 kimi
 ```
 
 ## 🎮 使用指南
@@ -139,6 +147,17 @@ async def custom_translate():
 - 检查Python tkinter是否可用
 - 尝试使用控制台模式: `export DISPLAY_MODE=console`
 
+**Q: API认证失败 (401错误)**
+- 检查.env文件中的API密钥是否正确
+- 确保使用的是Kimi AI的API密钥格式
+- 验证网络连接是否正常
+- 参考bug_fixes文件夹中的调试脚本
+
+**Q: 环境变量加载问题**
+- 检查.env文件是否存在且格式正确
+- 确保文件编码为UTF-8
+- 使用`bug_fixes/check_env.py`验证环境变量
+
 ### 调试模式
 
 ```bash
@@ -151,6 +170,24 @@ python -c "import sounddevice as sd; print(sd.query_devices())"
 
 ## 🛠️ 开发指南
 
+### Bug修复与调试
+
+项目包含专门的调试工具集，位于`bug_fixes/`文件夹中：
+
+```bash
+# 验证环境变量
+python bug_fixes/check_env.py
+
+# 测试API连接
+python bug_fixes/test_api.py
+
+# 验证翻译功能
+python bug_fixes/test_translation.py
+
+# 检查API密钥
+python bug_fixes/verify_key.py
+```
+
 ### 项目结构
 
 ```
@@ -161,6 +198,10 @@ realtime-subtitle-translator/
 │   ├── transcription.py     # 语音识别模块
 │   ├── translation.py       # 翻译模块
 │   └── subtitle_overlay.py  # 字幕显示模块
+├── bug_fixes/              # 调试和bug修复脚本
+│   ├── README.md           # 修复文档
+│   ├── check_env.py        # 环境检查
+│   └── ...                 # 其他调试脚本
 ├── tests/                   # 测试文件
 ├── config/                  # 配置文件
 ├── scripts/                 # 工具脚本
@@ -233,6 +274,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [Kimi AI](https://platform.moonshot.cn) - 翻译服务
 - [BlackHole](https://existential.audio/blackhole/) - 音频驱动
 - [SoundDevice](https://python-sounddevice.readthedocs.io/) - 音频处理
+- [python-dotenv](https://github.com/theskumar/python-dotenv) - 环境变量管理
 
 ## 📞 联系方式
 
