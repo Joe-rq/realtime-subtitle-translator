@@ -56,7 +56,7 @@ class WhisperTranscriber:
         if self.model is None:
             await self.load_model()
         
-        if audio_data is None or len(audio_data) == 0:
+        if audio_data is None or (isinstance(audio_data, np.ndarray) and audio_data.size == 0):
             return None
         
         try:

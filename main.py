@@ -11,11 +11,16 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Coroutine
+import numpy as np
+from dotenv import load_dotenv
 
 from src.audio_capture import AudioCapture
 from src.subtitle_overlay import SubtitleOverlay
 from src.transcription import WhisperTranscriber
 from src.translation import KimiTranslator
+
+# 加载环境变量
+load_dotenv(override=True)
 
 
 # 配置日志
@@ -76,12 +81,11 @@ class Application:
         """
         try:
             await self.audio_capture.start()
-            self.overlay.show()
             self.logger.info("✅ 实时翻译服务已启动")
 
             while self.running:
                 audio_data = await self.audio_capture.get_audio_chunk()
-                if not audio_data:
+                if audio_data is None or (isinstance(audio_data, np.ndarray) and audio_data.size == 0):
                     await asyncio.sleep(0.01) # 稍微等待，避免CPU空转
                     continue
 
@@ -119,7 +123,7 @@ class Application:
 
     def _drive_async_loop(self):
         """驱动asyncio事件循环"""
-        if self.running:
+        if self.running and self.overlay.root:
             self.loop.stop()
             self.loop.run_forever()
             # 使用 after 调度下一次执行，将控制权还给tkinter
@@ -136,6 +140,14 @@ class Application:
 
         self.running = True
         self.logger.info("🎯 启动实时字幕翻译工具...")
+
+        # 先显示GUI，确保root已初始化
+        self.overlay.show()
+        
+        # 确保GUI已就绪
+        if not self.overlay.root:
+            self.logger.error("❌ 无法初始化GUI")
+            return
 
         # 创建asyncio任务
         self._main_task = self.loop.create_task(self._main_loop())
@@ -185,7 +197,9 @@ def main():
     # 依赖注入：在这里创建和配置组件
     audio_capture = AudioCapture()
     transcriber = WhisperTranscriber()
+    
     translator = KimiTranslator()
+    
     overlay = SubtitleOverlay() # tkinker overlay 必须在主线程创建
 
     app = Application(

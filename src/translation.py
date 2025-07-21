@@ -85,9 +85,15 @@ class KimiTranslator:
                 headers=headers,
                 timeout=aiohttp.ClientTimeout(total=10)
             ) as response:
+                response_text = await response.text()
+                if response.status == 200:
+                    logger.info(f"翻译API请求成功: {response.status}")
+                else:
+                    logger.error(f"API请求失败: {response.status}, 响应内容: {response_text[:200]}...")
+                    logger.error(f"请求URL: {self.base_url}/chat/completions")
+                    logger.error(f"请求头Authorization: Bearer {self.api_key[:15]}...")
                 
                 if response.status != 200:
-                    logger.error(f"API请求失败: {response.status}")
                     return None
                 
                 data = await response.json()

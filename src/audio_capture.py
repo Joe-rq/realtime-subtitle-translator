@@ -93,7 +93,10 @@ class AudioCapture:
         
         try:
             # 非阻塞获取音频数据
-            return self.audio_queue.get_nowait()
+            data = self.audio_queue.get_nowait()
+            if data is not None and isinstance(data, np.ndarray) and data.size > 0:
+                return data
+            return None
             
         except queue.Empty:
             return None
