@@ -16,12 +16,14 @@ logger = logging.getLogger(__name__)
 class WhisperTranscriber:
     """Faster-Whisper语音识别类"""
     
-    def __init__(self, model_name: str = "base", device: str = "cpu"):
+    def __init__(self, model_name: str = "base", device: str = "cpu", language: str = "auto"):
         self.model_name = model_name
         self.device = device
+        self.language = language
         self.model = None
-        self.audio_buffer = []
-        self.buffer_duration = 3.0  # 缓冲区持续时间（秒）
+        self.audio_buffer = np.array([], dtype=np.float32)
+        self.buffer_duration = 5.0  # 缓冲区持续时间（秒）
+        self.sample_rate = 16000
         
     async def load_model(self):
         """加载Whisper模型"""
@@ -68,41 +70,28 @@ class WhisperTranscriber:
             if len(self.audio_buffer) < required_samples:
                 return None
             
-            # 获取最近的音频数据
-            audio_chunk = np.array(self.audio_buffer[-required_samples:])
-            
-            # 使用临时文件进行转录
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-                temp_path = temp_file.name
-                
-                # 保存音频为WAV格式
-                import scipy.io.wavfile as wavfile
-                wavfile.write(temp_path, 16000, audio_chunk.astype(np.float32))
-                
-                # 使用Faster-Whisper转录音频
-                segments, info = self.model.transcribe(
-                    temp_path,
-                    language="en",  # 英文识别
-                    task="transcribe",
-                    beam_size=5,
-                    vad_filter=True,  # 使用VAD过滤
-                    vad_parameters=dict(min_silence_duration_ms=500)
-                )
-                
-                # 清理临时文件
-                os.unlink(temp_path)
-                
-                # 合并所有片段的文本
-                text_parts = []
-                for segment in segments:
-                    text_parts.append(segment.text.strip())
-                
-                text = " ".join(text_parts).strip()
-                
-                if text and len(text) > 2:  # 过滤掉过短的文本
-                    return text
-                    
-                return None
+            # 获取完整的音频数据块
+            audio_chunk = np.array(self.audio_buffer)
+            self.audio_buffer = np.array([], dtype=np.float32) # 清空缓冲区
+
+            # 直接在内存中处理音频
+            segments, info = self.model.transcribe(
+                audio_chunk,
+                language=self.language if self.language != "auto" else None,
+                task="transcribe",
+                beam_size=5,
+                vad_filter=True,
+                vad_parameters=dict(min_silence_duration_ms=500)
+            )
+
+            text_parts = [segment.text.strip() for segment in segments]
+            text = " ".join(text_parts).strip()
+
+            if text and len(text) > 1:  # 过滤掉非常短的文本
+                logger.info(f"识别结果: '{text}' (语言: {info.language}, 置信度: {info.language_probability:.2f})")
+                return text
+
+            return None
                 
         except Exception as e:
             logger.error(f"转录失败: {e}")

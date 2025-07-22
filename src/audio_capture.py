@@ -75,13 +75,10 @@ class AudioCapture:
                 audio_data = indata.copy().flatten()
                 
                 # 如果队列太满，丢弃旧数据
-                if self.audio_queue.qsize() >= self.buffer_size:
-                    try:
-                        self.audio_queue.get_nowait()
-                    except queue.Empty:
-                        pass
-                
-                self.audio_queue.put(audio_data)
+                # 如果队列已满，丢弃最旧的数据以腾出空间
+                if self.audio_queue.full():
+                    self.audio_queue.get_nowait()  # 丢弃旧数据
+                self.audio_queue.put_nowait(audio_data)
                 
             except Exception as e:
                 logger.error(f"音频回调错误: {e}")

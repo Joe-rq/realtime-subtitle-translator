@@ -85,11 +85,12 @@ class Application:
 
             while self.running:
                 audio_data = await self.audio_capture.get_audio_chunk()
-                if audio_data is None or (isinstance(audio_data, np.ndarray) and audio_data.size == 0):
-                    await asyncio.sleep(0.01) # 稍微等待，避免CPU空转
-                    continue
-
+                audio_data = await self.audio_capture.get_audio_chunk()
                 text = await self.transcriber.transcribe(audio_data)
+
+                if not text:
+                    await asyncio.sleep(0.01)
+                    continue
                 if not text or not text.strip():
                     continue
                 
@@ -195,8 +196,10 @@ def main():
     transcript_logger.info(f"=== 实时字幕转写记录 - 会话开始于 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n")
     
     # 依赖注入：在这里创建和配置组件
+    # 依赖注入：在这里创建和配置组件
+    language = os.getenv("WHISPER_LANGUAGE", "auto")
     audio_capture = AudioCapture()
-    transcriber = WhisperTranscriber()
+    transcriber = WhisperTranscriber(language=language)
     
     translator = KimiTranslator()
     
