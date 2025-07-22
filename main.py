@@ -86,6 +86,10 @@ class Application:
             while self.running:
                 audio_data = await self.audio_capture.get_audio_chunk()
                 audio_data = await self.audio_capture.get_audio_chunk()
+                if audio_data is None:
+                    await asyncio.sleep(0.01)
+                    continue
+
                 text = await self.transcriber.transcribe(audio_data)
 
                 if not text:

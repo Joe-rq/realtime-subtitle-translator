@@ -63,7 +63,7 @@ class WhisperTranscriber:
         
         try:
             # 累积音频数据到缓冲区
-            self.audio_buffer.extend(audio_data)
+            self.audio_buffer = np.concatenate([self.audio_buffer, audio_data])
             
             # 检查缓冲区是否足够
             required_samples = int(16000 * self.buffer_duration)  # 3秒音频
@@ -99,7 +99,7 @@ class WhisperTranscriber:
     
     def clear_buffer(self):
         """清空音频缓冲区"""
-        self.audio_buffer = []
+        self.audio_buffer = np.array([], dtype=np.float32)
     
     def get_buffer_info(self) -> dict:
         """获取缓冲区信息"""
